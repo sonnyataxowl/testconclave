@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           OUT="$(npx --yes wrangler@3 pages deploy _site \
-            --project-name='conclave' --branch="$GITHUB_REF_NAME" 2>&1 | tee /dev/stderr)"
+            --project-name='conclave2' --branch="$GITHUB_REF_NAME" 2>&1 | tee /dev/stderr)"
           URL="$(echo "$OUT" | grep -oE 'https://[a-z0-9.-]+\.pages\.dev' | tail -1)"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "미리보기: $URL" >> "$GITHUB_STEP_SUMMARY"
