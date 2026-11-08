@@ -9,5 +9,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddSingleton<IMeetingService, InMemoryMeetingService>();
 
 await builder.Build().RunAsync();
