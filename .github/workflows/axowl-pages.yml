@@ -1,3 +1,6 @@
+# Axowl 이 넣은 파일입니다 — .NET(Blazor WASM)을 빌드해 스토리마다 미리보기를 만듭니다.
+#   🚨 build 잡에는 시크릿이 없습니다(여기서 저장소 코드가 컴파일됩니다).
+#   🚨 deploy 잡은 저장소 코드를 실행하지 않고 artifact 만 올립니다.
 name: axowl-pages
 
 on:
