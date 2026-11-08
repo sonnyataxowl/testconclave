@@ -1,0 +1,84 @@
+@page "/room/{Id}"
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+@inject NavigationManager Nav
+@inject Conclave.Client.Services.AuthService Auth
+
+<PageTitle>회의방 · Conclave</PageTitle>
+
+<h1>회의방</h1>
+
+@if (_state == State.Idle)
+{
+    <div class="room-join">
+        <label>이름 <input @bind="_name" maxlength="60" placeholder="표시할 이름" /></label>
+        <button type="button" @onclick="JoinAsync">입장</button>
+    </div>
+}
+@if (_state == State.Joining)
+{
+    <p>입장하는 중…</p>
+}
+@if (_state == State.Joined)
+{
+    <button type="button" @onclick="LeaveAsync">퇴장</button>
+}
+@if (_error is not null)
+{
+    <p class="error" role="alert">@_error</p>
+}
+
+<div @ref="_grid" class="room-grid"></div>
+
+@code {
+    private enum State { Idle, Joining, Joined, Left }
+
+    [Parameter] public string Id { get; set; } = "";
+
+    private ElementReference _grid;
+    private State _state = State.Idle;
+    private string _name = "";
+    private string? _error;
+    private IJSObjectReference? _module;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        if (Auth.IsSignedIn && string.IsNullOrWhiteSpace(_name)) _name = Auth.DisplayName ?? "";
+    }
+
+    private async Task JoinAsync()
+    {
+        _error = null;
+        _state = State.Joining;
+        try
+        {
+            _module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/room.js");
+            await _module.InvokeVoidAsync("join", _grid, Id, _name.Trim(), Auth.AccessToken);
+            _state = State.Joined;
+        }
+        catch (JSException ex)
+        {
+            _error = ex.Message;
+            _state = State.Idle;
+        }
+    }
+
+    private async Task LeaveAsync()
+    {
+        if (_module is not null) await _module.InvokeVoidAsync("leave");
+        _state = State.Left;
+        Nav.NavigateTo(Auth.IsSignedIn ? "meetings" : "");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null) return;
+        try
+        {
+            await _module.InvokeVoidAsync("leave");
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+    }
+}
