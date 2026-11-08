@@ -1,8 +1,74 @@
 @page "/meetings"
+@using Conclave.Client.Services
+@inject IMeetingService MeetingService
 
 <PageTitle>내 회의 · Conclave</PageTitle>
 
 <RequireLogin>
     <h1>내 회의</h1>
-    <p>회의 목록은 다음 스토리에서 채웁니다.</p>
+
+    <form @onsubmit="CreateAsync">
+        <label for="meeting-title">새 회의 제목</label>
+        <input id="meeting-title" @bind="_title" @bind:event="oninput" maxlength="@(MeetingTitleValidator.MaxLength + 20)" disabled="@_submitting" />
+        <button type="submit" disabled="@_submitting">@(_submitting ? "만드는 중…" : "회의 만들기")</button>
+        @if (_error is not null)
+        {
+            <p role="alert" class="error">@_error</p>
+        }
+        @if (_notice is not null)
+        {
+            <p role="status" class="notice">@_notice</p>
+        }
+    </form>
+
+    @if (_meetings.Count == 0)
+    {
+        <p>아직 회의가 없습니다.</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var m in _meetings)
+            {
+                <li>@m.Title <small>@m.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small></li>
+            }
+        </ul>
+    }
 </RequireLogin>
+
+@code {
+    private string _title = "";
+    private string? _error;
+    private string? _notice;
+    private bool _submitting;
+    private IReadOnlyList<Meeting> _meetings = Array.Empty<Meeting>();
+
+    protected override async Task OnInitializedAsync() =>
+        _meetings = await MeetingService.ListAsync();
+
+    private async Task CreateAsync()
+    {
+        if (_submitting) return;
+
+        _notice = null;
+        _error = MeetingTitleValidator.Validate(_title);
+        if (_error is not null) return;
+
+        _submitting = true;
+        try
+        {
+            var created = await MeetingService.CreateAsync(_title);
+            _meetings = await MeetingService.ListAsync();
+            _title = "";
+            _notice = $"'{created.Title}' 회의를 만들었습니다.";
+        }
+        catch (Exception)
+        {
+            _error = "회의를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}
