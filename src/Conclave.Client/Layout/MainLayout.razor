@@ -1,12 +1,40 @@
+@using Conclave.Client.Services
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject AuthService Auth
 
 <header class="top">
     <a class="brand" href="">Conclave</a>
     <nav>
         <NavLink href="" Match="NavLinkMatch.All">홈</NavLink>
+        <NavLink href="meetings">내 회의</NavLink>
+        @if (Auth.IsReady)
+        {
+            @if (Auth.IsSignedIn)
+            {
+                <span class="user">@(Auth.DisplayName ?? "로그인됨")</span>
+                <button type="button" @onclick="Auth.SignOutAsync">로그아웃</button>
+            }
+            else
+            {
+                <a href="@Auth.LoginUrl">로그인</a>
+            }
+        }
     </nav>
 </header>
 
 <main>
     @Body
 </main>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.Changed += OnChanged;
+        await Auth.InitializeAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Auth.Changed -= OnChanged;
+}
