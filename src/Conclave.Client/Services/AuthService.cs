@@ -5,6 +5,8 @@ namespace Conclave.Client.Services;
 
 public sealed class AuthService
 {
+    private sealed record ExchangeResult(string? Token, string? Error);
+
     private readonly IJSRuntime _js;
     private readonly NavigationManager _nav;
     private readonly string _clientKey;
@@ -29,6 +31,9 @@ public sealed class AuthService
     public string? DisplayName { get; private set; }
     public string? AccessToken { get; private set; }
 
+    /// <summary>로그인에 실패한 이유. 성공하거나 시도가 없으면 null.</summary>
+    public string? LoginError { get; private set; }
+
     public string LoginUrl => AuthUrls.BuildLoginUrl(_portal, _clientKey, _nav.BaseUri);
 
     public Task InitializeAsync() => _init ??= InitCoreAsync();
@@ -43,7 +48,9 @@ public sealed class AuthService
             var code = AuthUrls.ExtractCode(_nav.Uri);
             if (code is not null)
             {
-                token = await _module.InvokeAsync<string?>("exchange", _apiBase, _clientKey, code);
+                var result = await _module.InvokeAsync<ExchangeResult>("exchange", _apiBase, _clientKey, code);
+                token = result.Token;
+                LoginError = result.Error;
                 _nav.NavigateTo(AuthUrls.StripCode(_nav.Uri), replace: true);
             }
             else
@@ -52,6 +59,12 @@ public sealed class AuthService
             }
 
             await ApplyTokenAsync(token);
+            if (code is not null && !IsSignedIn && LoginError is null)
+                LoginError = "받은 토큰을 읽을 수 없거나 이미 만료되었습니다.";
+        }
+        catch (JSException ex)
+        {
+            LoginError = $"로그인 스크립트 오류: {ex.Message}";
         }
         finally
         {
@@ -84,6 +97,7 @@ public sealed class AuthService
         AccessToken = null;
         DisplayName = null;
         IsSignedIn = false;
+        LoginError = null;
         Changed?.Invoke();
         _nav.NavigateTo("");
     }

@@ -1,0 +1,13 @@
+@page "/meetings/{Id}"
+
+<PageTitle>회의 · Conclave</PageTitle>
+
+<RequireLogin>
+    <h1>회의 상세</h1>
+    <p>회의 @Id 의 상세와 입장은 다음 에픽에서 만듭니다.</p>
+    <p><a href="meetings">← 내 회의</a></p>
+</RequireLogin>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+}

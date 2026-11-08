@@ -1,0 +1,56 @@
+@using Conclave.Client.Services
+@inject IMeetingService Meetings
+
+@if (_loading)
+{
+    <p role="status">회의를 불러오는 중…</p>
+}
+else if (_error)
+{
+    <div role="alert">
+        <p>회의 목록을 불러오지 못했습니다.</p>
+        <button type="button" @onclick="LoadAsync">다시 시도</button>
+    </div>
+}
+else if (_items.Count == 0)
+{
+    <p>아직 회의가 없습니다. 새 회의를 만들어 보세요.</p>
+}
+else
+{
+    <ul class="meeting-list">
+        @foreach (var m in _items)
+        {
+            <li>
+                <a href="meetings/@m.Id">@m.Title</a>
+                <time datetime="@m.CreatedAt.ToString("o")">@m.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</time>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<Meeting> _items = Array.Empty<Meeting>();
+    private bool _loading = true;
+    private bool _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = false;
+        try
+        {
+            _items = (await Meetings.ListMineAsync()).OrderByDescending(m => m.CreatedAt).ToList();
+        }
+        catch (Exception)
+        {
+            _error = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

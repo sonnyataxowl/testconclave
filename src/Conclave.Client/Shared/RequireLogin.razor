@@ -9,6 +9,10 @@
 else if (!Auth.IsSignedIn)
 {
     <h1>로그인이 필요합니다</h1>
+    @if (Auth.LoginError is not null)
+    {
+        <p class="error" role="alert">로그인하지 못했습니다: @Auth.LoginError</p>
+    }
     <p><a href="@Auth.LoginUrl">로그인</a> 후 이용할 수 있습니다.</p>
 }
 else
